@@ -1,9 +1,11 @@
+// lib/features/auth/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../features/auth/auth_controller.dart';
-import '../../widgets/custom_textfield.dart';
+import '../../widgets/phone_input_field.dart';
+import '../../widgets/custom_password_field.dart';
 import '../../widgets/custom_button.dart';
-import '../../core/validators.dart';
+import '../../core/app_constants.dart';
 import '../../app/app_routes.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,13 +17,13 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authController = Get.put(AuthController());
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -33,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login'),
+        title: const Text(AppConstants.login),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -64,14 +66,14 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Welcome Back!',
+                        AppConstants.welcome,
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Sign in to continue to PDP Mobile',
+                        'PDP Mobile\'ga kirish',
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7),
                         ),
@@ -83,17 +85,17 @@ class _LoginPageState extends State<LoginPage> {
                 SizedBox(height: size.height * 0.08),
 
                 // Form section
-                EmailTextField(
-                  controller: _emailController,
-                  validator: Validators.validateEmail,
-                  hint: 'Enter your email address',
+                PhoneInputField(
+                  label: AppConstants.phoneNumber,
+                  controller: _phoneController,
+                  hint: '90) 123-45-67',
                 ),
                 const SizedBox(height: 16),
 
-                PasswordTextField(
+                CustomPasswordField(
+                  label: AppConstants.password,
                   controller: _passwordController,
-                  validator: Validators.validatePassword,
-                  hint: 'Enter your password',
+                  hint: 'Parolingizni kiriting',
                 ),
                 const SizedBox(height: 8),
 
@@ -103,7 +105,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: TextButton(
                     onPressed: _showForgotPasswordDialog,
                     child: Text(
-                      'Forgot Password?',
+                      'Parolni unutdingizmi?',
                       style: TextStyle(
                         color: theme.primaryColor,
                         fontWeight: FontWeight.w500,
@@ -116,7 +118,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Login button
                 Obx(() => PrimaryButton(
-                  text: 'Login',
+                  text: AppConstants.login,
                   onPressed: _authController.isLoading ? null : _handleLogin,
                   isLoading: _authController.isLoading,
                   width: double.infinity,
@@ -131,7 +133,7 @@ class _LoginPageState extends State<LoginPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'or',
+                        'yoki',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
                         ),
@@ -145,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Register button
                 SecondaryButton(
-                  text: 'Create New Account',
+                  text: 'Yangi hisob yaratish',
                   onPressed: () => AppRoutes.toRegister(),
                   width: double.infinity,
                 ),
@@ -174,7 +176,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Demo Credentials',
+                            'Test uchun',
                             style: theme.textTheme.titleSmall?.copyWith(
                               color: theme.primaryColor,
                               fontWeight: FontWeight.w600,
@@ -184,7 +186,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Email: student@pdp.com\nPassword: password123',
+                        'Telefon: 90) 123-45-67\nParol: 123456',
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontFamily: 'monospace',
                         ),
@@ -203,41 +205,41 @@ class _LoginPageState extends State<LoginPage> {
   void _handleLogin() {
     if (_formKey.currentState?.validate() ?? false) {
       _authController.login(
-        _emailController.text.trim(),
+        _phoneController.fullPhoneNumber, // +998901234567
         _passwordController.text,
       );
     }
   }
 
   void _showForgotPasswordDialog() {
-    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
 
     Get.dialog(
       AlertDialog(
-        title: const Text('Forgot Password'),
+        title: const Text('Parolni tiklash'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Enter your email address to receive a password reset link.'),
+            const Text('Telefon raqamingizni kiriting, parolni tiklash havolasini yuboramiz.'),
             const SizedBox(height: 16),
-            EmailTextField(
-              controller: emailController,
-              validator: Validators.validateEmail,
-              hint: 'Enter your email',
+            PhoneInputField(
+              controller: phoneController,
+              hint: '90) 123-45-67',
+              required: true,
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: const Text('Bekor qilish'),
           ),
           Obx(() => TextButton(
             onPressed: _authController.isLoading
                 ? null
                 : () {
-              if (emailController.text.isNotEmpty) {
-                _authController.forgotPassword(emailController.text.trim());
+              if (phoneController.text.isNotEmpty) {
+                _authController.forgotPassword(phoneController.fullPhoneNumber);
                 Get.back();
               }
             },
@@ -247,7 +249,7 @@ class _LoginPageState extends State<LoginPage> {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-                : const Text('Send'),
+                : const Text('Yuborish'),
           )),
         ],
       ),

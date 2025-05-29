@@ -1,6 +1,8 @@
+// lib/app/route_guard.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../core/storage_service.dart';
+import '../features/auth/auth_controller.dart';
 import '../app/app_routes.dart';
 
 class RouteGuard extends GetMiddleware {
@@ -11,38 +13,41 @@ class RouteGuard extends GetMiddleware {
   RouteSettings? redirect(String? route) {
     // Check if user is logged in
     if (!StorageService.isLoggedIn()) {
-      // If not logged in, redirect to landing page
       return const RouteSettings(name: AppRoutes.landing);
     }
 
     // Check if token exists
     final token = StorageService.getToken();
     if (token == null || token.isEmpty) {
-      // If no token, redirect to login
       return const RouteSettings(name: AppRoutes.login);
     }
 
     // Check if token is expired (basic check)
     if (_isTokenExpired(token)) {
-      // Clear storage and redirect to login
       StorageService.clearAll();
       return const RouteSettings(name: AppRoutes.login);
     }
 
-    // User is authenticated, allow access
+    // Check payment status
+    final userData = StorageService.getUserData();
+    if (userData != null) {
+      final isPaid = userData['is_paid'] as bool? ?? false;
+      if (!isPaid) {
+        // User hasn't paid, redirect to payment page
+        return const RouteSettings(name: AppRoutes.payment);
+      }
+    }
+
+    // User is authenticated and has paid, allow access
     return null;
   }
 
-  // Basic token expiration check
   bool _isTokenExpired(String token) {
     try {
-      // This is a basic implementation
-      // In a real app, you would decode JWT and check exp claim
       final parts = token.split('.');
       if (parts.length != 3) {
         return true; // Invalid token format
       }
-
       // For now, just return false
       // Implement proper JWT decoding if using JWT tokens
       return false;
@@ -62,8 +67,18 @@ class AuthGuard extends GetMiddleware {
     if (StorageService.isLoggedIn()) {
       final token = StorageService.getToken();
       if (token != null && token.isNotEmpty && !_isTokenExpired(token)) {
-        // User is already authenticated, redirect to home
-        return const RouteSettings(name: AppRoutes.home);
+        // Check payment status to decide where to redirect
+        final userData = StorageService.getUserData();
+        if (userData != null) {
+          final isPaid = userData['is_paid'] as bool? ?? false;
+          if (isPaid) {
+            // User is paid, redirect to home
+            return const RouteSettings(name: AppRoutes.home);
+          } else {
+            // User hasn't paid, redirect to payment
+            return const RouteSettings(name: AppRoutes.payment);
+          }
+        }
       }
     }
 
@@ -84,9 +99,30 @@ class AuthGuard extends GetMiddleware {
   }
 }
 
-class OnboardingGuard extends GetMiddleware {
+class PaymentGuard extends GetMiddleware {
   @override
   int get priority => 3;
+
+  @override
+  RouteSettings? redirect(String? route) {
+    // Only check if user is logged in for payment page
+    if (!StorageService.isLoggedIn()) {
+      return const RouteSettings(name: AppRoutes.landing);
+    }
+
+    final token = StorageService.getToken();
+    if (token == null || token.isEmpty) {
+      return const RouteSettings(name: AppRoutes.login);
+    }
+
+    // Allow access to payment page if user is authenticated
+    return null;
+  }
+}
+
+class OnboardingGuard extends GetMiddleware {
+  @override
+  int get priority => 4;
 
   @override
   RouteSettings? redirect(String? route) {
@@ -108,7 +144,7 @@ class RoleGuard extends GetMiddleware {
   RoleGuard({required this.allowedRoles});
 
   @override
-  int get priority => 4;
+  int get priority => 5;
 
   @override
   RouteSettings? redirect(String? route) {
@@ -120,8 +156,7 @@ class RoleGuard extends GetMiddleware {
 
     final userRole = userData['role'] as String?;
     if (userRole == null || !allowedRoles.contains(userRole)) {
-      // User doesn't have required role, redirect to unauthorized page
-      // or home page
+      // User doesn't have required role, redirect to home page
       return const RouteSettings(name: AppRoutes.home);
     }
 
@@ -133,8 +168,15 @@ class RoleGuard extends GetMiddleware {
 class RouteProtection {
   // Check if user is authenticated
   static bool isAuthenticated() {
-    return StorageService.isLoggedIn() &&
-        StorageService.getToken() != null;
+    return StorageService.isLoggedIn() && StorageService.getToken() != null;
+  }
+
+  // Check if user has paid
+  static bool hasPaidSubscription() {
+    final userData = StorageService.getUserData();
+    if (userData == null) return false;
+
+    return userData['is_paid'] as bool? ?? false;
   }
 
   // Check if user has specific role
@@ -155,16 +197,22 @@ class RouteProtection {
     return userRole != null && roles.contains(userRole);
   }
 
-  // Get current user role
-  static String? getCurrentUserRole() {
+  // Get current user phone number
+  static String? getCurrentUserPhone() {
     final userData = StorageService.getUserData();
-    return userData?['role'] as String?;
+    return userData?['phone_number'] as String?;
   }
 
   // Get current user ID
   static String? getCurrentUserId() {
     final userData = StorageService.getUserData();
     return userData?['id'] as String?;
+  }
+
+  // Get current user full name
+  static String? getCurrentUserName() {
+    final userData = StorageService.getUserData();
+    return userData?['full_name'] as String?;
   }
 
   // Force logout and redirect to login
@@ -182,8 +230,34 @@ class RouteProtection {
       AppRoutes.homework,
       AppRoutes.profile,
       AppRoutes.settings,
+      AppRoutes.payment,
     ];
 
     return authRequiredRoutes.contains(route);
+  }
+
+  // Check if route requires payment
+  static bool requiresPayment(String route) {
+    const paymentRequiredRoutes = [
+      AppRoutes.home,
+      AppRoutes.attendance,
+      AppRoutes.exams,
+      AppRoutes.homework,
+      AppRoutes.profile,
+      AppRoutes.settings,
+    ];
+
+    return paymentRequiredRoutes.contains(route);
+  }
+
+  // Navigate based on user status
+  static void navigateBasedOnStatus() {
+    if (!isAuthenticated()) {
+      Get.offAllNamed(AppRoutes.landing);
+    } else if (!hasPaidSubscription()) {
+      Get.offAllNamed(AppRoutes.payment);
+    } else {
+      Get.offAllNamed(AppRoutes.home);
+    }
   }
 }

@@ -1,8 +1,11 @@
+// lib/app/app_routes.dart
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../features/auth/landing_page.dart';
 import '../features/auth/login_page.dart';
 import '../features/auth/register_page.dart';
 import '../features/auth/waiting_confirmation_page.dart';
+import '../features/payment/payment_page.dart';
 import '../features/home/home_page.dart';
 import '../features/attendance/attendance_page.dart';
 import '../features/exams/exam_page.dart';
@@ -16,6 +19,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String waitingConfirmation = '/waiting-confirmation';
+  static const String payment = '/payment';
   static const String home = '/home';
   static const String attendance = '/attendance';
   static const String exams = '/exams';
@@ -47,7 +51,15 @@ class AppRoutes {
       transition: Transition.rightToLeft,
     ),
 
-    // Protected Routes
+    // Payment Route (requires auth but not payment)
+    GetPage(
+      name: payment,
+      page: () => const PaymentPage(),
+      transition: Transition.rightToLeft,
+      middlewares: [AuthGuard()], // Only check if logged in, not payment status
+    ),
+
+    // Protected Routes (require auth and payment)
     GetPage(
       name: home,
       page: () => const HomePage(),
@@ -85,6 +97,10 @@ class AppRoutes {
 
   static void toWaitingConfirmation() {
     Get.toNamed(waitingConfirmation);
+  }
+
+  static void toPayment() {
+    Get.offAllNamed(payment);
   }
 
   static void toHome() {

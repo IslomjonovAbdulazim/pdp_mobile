@@ -1,21 +1,23 @@
+// lib/features/auth/auth_controller.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/api_service.dart';
 import '../../core/storage_service.dart';
 import '../../core/error_handler.dart';
 import '../../core/app_constants.dart';
+import '../../data/models/user_model.dart';
 import '../../app/app_routes.dart';
 
 class AuthController extends GetxController {
   // Observable variables
   final _isLoading = false.obs;
   final _isLoggedIn = false.obs;
-  final _currentUser = Rxn<Map<String, dynamic>>();
+  final _currentUser = Rxn<User>();
 
   // Getters
   bool get isLoading => _isLoading.value;
   bool get isLoggedIn => _isLoggedIn.value;
-  Map<String, dynamic>? get currentUser => _currentUser.value;
+  User? get currentUser => _currentUser.value;
 
   @override
   void onInit() {
@@ -29,27 +31,46 @@ class AuthController extends GetxController {
     final userData = StorageService.getUserData();
 
     _isLoggedIn.value = isLoggedIn;
-    _currentUser.value = userData;
 
-    if (isLoggedIn && userData != null) {
-      // User is logged in, navigate to home
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppRoutes.toHome();
-      });
+    if (userData != null) {
+      try {
+        _currentUser.value = User.fromJson(userData);
+      } catch (e) {
+        // If user data is corrupted, clear it
+        StorageService.clearAll();
+        _isLoggedIn.value = false;
+      }
+    }
+
+    if (isLoggedIn && _currentUser.value != null) {
+      // Check if user has paid subscription
+      if (_currentUser.value!.isPaid) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          AppRoutes.toHome();
+        });
+      } else {
+        // Redirect to payment page if not paid
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          AppRoutes.toPayment();
+        });
+      }
     }
   }
 
-  // Login method
-  Future<void> login(String email, String password) async {
+  // Login method with phone number
+  Future<void> login(String phoneNumber, String password) async {
     try {
       _isLoading.value = true;
 
-      final response = await ApiService.login(email, password);
+      final response = await ApiService.login(phoneNumber, password);
 
       final token = response['token'] as String?;
       final userData = response['user'] as Map<String, dynamic>?;
 
       if (token != null && userData != null) {
+        // Parse user data
+        final user = User.fromJson(userData);
+
         // Save auth data
         await StorageService.saveToken(token);
         await StorageService.saveUserData(userData);
@@ -57,55 +78,64 @@ class AuthController extends GetxController {
 
         // Update controller state
         _isLoggedIn.value = true;
-        _currentUser.value = userData;
+        _currentUser.value = user;
 
-        // Show success message
-        ErrorHandler.showSuccessSnackbar(AppConstants.loginSuccess);
+        // Show success message in Uzbek
+        ErrorHandler.showSuccessSnackbar('Muvaffaqiyatli kirildi');
 
-        // Navigate to home
-        AppRoutes.toHome();
+        // Navigate based on payment status
+        if (user.isPaid) {
+          AppRoutes.toHome();
+        } else {
+          AppRoutes.toPayment();
+        }
       } else {
-        throw Exception('Invalid response from server');
+        throw Exception('Serverdan noto\'g\'ri javob keldi');
       }
     } catch (e) {
-      ErrorHandler.handleError(e);
+      String errorMessage = AppConstants.loginFailed;
+
+      // Handle specific errors
+      if (e.toString().contains('404')) {
+        errorMessage = 'Foydalanuvchi topilmadi';
+      } else if (e.toString().contains('401')) {
+        errorMessage = 'Telefon raqami yoki parol noto\'g\'ri';
+      } else if (e.toString().contains('network')) {
+        errorMessage = AppConstants.networkError;
+      }
+
+      ErrorHandler.showErrorSnackbar(errorMessage);
     } finally {
       _isLoading.value = false;
     }
   }
 
-  // Register method (for app store compliance - shows form but doesn't actually register)
+  // Register method with phone and full name
   Future<void> register(Map<String, dynamic> userData) async {
-    try {
-      _isLoading.value = true;
-
-      // Simulate API call delay
-      await Future.delayed(const Duration(seconds: 2));
-
-      // For app store compliance, show waiting confirmation
-      // In reality, this doesn't create an account
-      ErrorHandler.showInfoSnackbar('Registration request submitted');
-      AppRoutes.toWaitingConfirmation();
-
-    } catch (e) {
-      ErrorHandler.handleError(e);
-    } finally {
-      _isLoading.value = false;
-    }
-  }
-
-  // Real register method (if you want to enable actual registration later)
-  Future<void> _actualRegister(Map<String, dynamic> userData) async {
     try {
       _isLoading.value = true;
 
       final response = await ApiService.register(userData);
 
-      ErrorHandler.showSuccessSnackbar(AppConstants.registerSuccess);
+      // Show success message
+      ErrorHandler.showSuccessSnackbar('Ro\'yxatdan o\'tish muvaffaqiyatli. Endi tizimga kiring.');
+
+      // Navigate to login
       AppRoutes.toLogin();
 
     } catch (e) {
-      ErrorHandler.handleError(e);
+      String errorMessage = AppConstants.registerFailed;
+
+      // Handle specific errors
+      if (e.toString().contains('409')) {
+        errorMessage = 'Bu telefon raqami allaqachon ro\'yxatdan o\'tgan';
+      } else if (e.toString().contains('422')) {
+        errorMessage = 'Ma\'lumotlar noto\'g\'ri kiritilgan';
+      } else if (e.toString().contains('network')) {
+        errorMessage = AppConstants.networkError;
+      }
+
+      ErrorHandler.showErrorSnackbar(errorMessage);
     } finally {
       _isLoading.value = false;
     }
@@ -132,7 +162,7 @@ class AuthController extends GetxController {
       _currentUser.value = null;
 
       // Show success message
-      ErrorHandler.showSuccessSnackbar('Logged out successfully');
+      ErrorHandler.showSuccessSnackbar('Tizimdan muvaffaqiyatli chiqildi');
 
       // Navigate to landing page
       AppRoutes.toLanding();
@@ -145,36 +175,79 @@ class AuthController extends GetxController {
   }
 
   // Forgot password method
-  Future<void> forgotPassword(String email) async {
+  Future<void> forgotPassword(String phoneNumber) async {
     try {
       _isLoading.value = true;
 
-      await ApiService.post('/auth/forgot-password', {'email': email}, includeAuth: false);
+      await ApiService.post('/auth/forgot-password', {
+        'phone_number': phoneNumber
+      }, includeAuth: false);
 
-      ErrorHandler.showSuccessSnackbar('Password reset link sent to your email');
+      ErrorHandler.showSuccessSnackbar('Parolni tiklash kodi SMS orqali yuborildi');
 
     } catch (e) {
-      ErrorHandler.handleError(e);
+      String errorMessage = 'Parolni tiklashda xatolik yuz berdi';
+
+      if (e.toString().contains('404')) {
+        errorMessage = 'Bu telefon raqami ro\'yxatdan o\'tmagan';
+      } else if (e.toString().contains('network')) {
+        errorMessage = AppConstants.networkError;
+      }
+
+      ErrorHandler.showErrorSnackbar(errorMessage);
     } finally {
       _isLoading.value = false;
     }
   }
 
-  // Reset password method
-  Future<void> resetPassword(String token, String newPassword) async {
+  // Update profile method
+  Future<void> updateProfile(Map<String, dynamic> profileData) async {
     try {
       _isLoading.value = true;
 
-      await ApiService.post('/auth/reset-password', {
-        'token': token,
-        'password': newPassword,
-      }, includeAuth: false);
+      final userId = _currentUser.value?.id;
+      if (userId == null) throw Exception('Foydalanuvchi topilmadi');
 
-      ErrorHandler.showSuccessSnackbar('Password reset successfully');
-      AppRoutes.toLogin();
+      final response = await ApiService.put('/users/$userId', profileData);
+
+      final updatedUserData = response['user'] as Map<String, dynamic>?;
+      if (updatedUserData != null) {
+        final updatedUser = User.fromJson(updatedUserData);
+        await StorageService.saveUserData(updatedUserData);
+        _currentUser.value = updatedUser;
+      }
+
+      ErrorHandler.showSuccessSnackbar('Profil muvaffaqiyatli yangilandi');
 
     } catch (e) {
-      ErrorHandler.handleError(e);
+      ErrorHandler.showErrorSnackbar('Profilni yangilashda xatolik yuz berdi');
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  // Change password method
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    try {
+      _isLoading.value = true;
+
+      await ApiService.post('/auth/change-password', {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      });
+
+      ErrorHandler.showSuccessSnackbar('Parol muvaffaqiyatli o\'zgartirildi');
+
+    } catch (e) {
+      String errorMessage = 'Parolni o\'zgartirishda xatolik yuz berdi';
+
+      if (e.toString().contains('401')) {
+        errorMessage = 'Joriy parol noto\'g\'ri';
+      } else if (e.toString().contains('network')) {
+        errorMessage = AppConstants.networkError;
+      }
+
+      ErrorHandler.showErrorSnackbar(errorMessage);
     } finally {
       _isLoading.value = false;
     }
@@ -201,136 +274,87 @@ class AuthController extends GetxController {
     }
   }
 
-  // Update profile method
-  Future<void> updateProfile(Map<String, dynamic> profileData) async {
+  // Check payment status
+  Future<void> checkPaymentStatus() async {
     try {
-      _isLoading.value = true;
+      final userId = _currentUser.value?.id;
+      if (userId == null) return;
 
-      final userId = _currentUser.value?['id'];
-      if (userId == null) throw Exception('User not found');
+      final response = await ApiService.get('/users/$userId/payment-status');
+      final isPaid = response['is_paid'] as bool? ?? false;
 
-      final response = await ApiService.put('/users/$userId', profileData);
-
-      final updatedUser = response['user'] as Map<String, dynamic>?;
-      if (updatedUser != null) {
-        await StorageService.saveUserData(updatedUser);
+      if (_currentUser.value != null) {
+        final updatedUser = _currentUser.value!.copyWith(isPaid: isPaid);
         _currentUser.value = updatedUser;
+
+        // Update stored user data
+        await StorageService.saveUserData(updatedUser.toJson());
+
+        // Navigate based on payment status
+        if (isPaid) {
+          AppRoutes.toHome();
+        } else {
+          AppRoutes.toPayment();
+        }
       }
 
-      ErrorHandler.showSuccessSnackbar('Profile updated successfully');
-
     } catch (e) {
-      ErrorHandler.handleError(e);
-    } finally {
-      _isLoading.value = false;
+      print('Payment status check failed: $e');
     }
   }
 
-  // Change password method
-  Future<void> changePassword(String currentPassword, String newPassword) async {
-    try {
-      _isLoading.value = true;
-
-      await ApiService.post('/auth/change-password', {
-        'current_password': currentPassword,
-        'new_password': newPassword,
-      });
-
-      ErrorHandler.showSuccessSnackbar('Password changed successfully');
-
-    } catch (e) {
-      ErrorHandler.handleError(e);
-    } finally {
-      _isLoading.value = false;
-    }
-  }
-
-  // Verify email method
-  Future<void> verifyEmail(String verificationCode) async {
-    try {
-      _isLoading.value = true;
-
-      await ApiService.post('/auth/verify-email', {
-        'code': verificationCode,
-      });
-
-      ErrorHandler.showSuccessSnackbar('Email verified successfully');
-
-    } catch (e) {
-      ErrorHandler.handleError(e);
-    } finally {
-      _isLoading.value = false;
-    }
-  }
-
-  // Resend verification email
-  Future<void> resendVerificationEmail() async {
-    try {
-      _isLoading.value = true;
-
-      final email = _currentUser.value?['email'];
-      if (email == null) throw Exception('Email not found');
-
-      await ApiService.post('/auth/resend-verification', {
-        'email': email,
-      });
-
-      ErrorHandler.showSuccessSnackbar('Verification email sent');
-
-    } catch (e) {
-      ErrorHandler.handleError(e);
-    } finally {
-      _isLoading.value = false;
-    }
-  }
-
-  // Check if user email is verified
-  bool get isEmailVerified {
-    return _currentUser.value?['email_verified'] == true;
-  }
-
-  // Get user role
-  String? get userRole {
-    return _currentUser.value?['role'] as String?;
-  }
-
-  // Get user name
+  // Get user display name
   String get userName {
-    final user = _currentUser.value;
-    if (user == null) return 'User';
-
-    final firstName = user['first_name'] as String? ?? '';
-    final lastName = user['last_name'] as String? ?? '';
-
-    if (firstName.isNotEmpty && lastName.isNotEmpty) {
-      return '$firstName $lastName';
-    } else if (firstName.isNotEmpty) {
-      return firstName;
-    } else if (lastName.isNotEmpty) {
-      return lastName;
-    } else {
-      return user['email'] as String? ?? 'User';
-    }
+    return _currentUser.value?.fullName ?? 'Foydalanuvchi';
   }
 
-  // Get user initials
+  // Get user initials for avatar
   String get userInitials {
-    final user = _currentUser.value;
-    if (user == null) return 'U';
+    return _currentUser.value?.initials ?? 'F';
+  }
 
-    final firstName = user['first_name'] as String? ?? '';
-    final lastName = user['last_name'] as String? ?? '';
+  // Get formatted phone number
+  String get userPhone {
+    return _currentUser.value?.formattedPhone ?? '';
+  }
 
-    String firstInitial = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
-    String lastInitial = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
+  // Check if user has paid subscription
+  bool get hasActivePlan {
+    return _currentUser.value?.isPaid ?? false;
+  }
 
-    if (firstInitial.isNotEmpty && lastInitial.isNotEmpty) {
-      return '$firstInitial$lastInitial';
-    } else if (firstInitial.isNotEmpty) {
-      return firstInitial;
-    } else {
-      final email = user['email'] as String? ?? 'U';
-      return email[0].toUpperCase();
+  // Get user avatar URL
+  String? get userAvatarUrl {
+    return _currentUser.value?.avatarUrl;
+  }
+
+  // Upload profile picture
+  Future<void> uploadProfilePicture(String imagePath) async {
+    try {
+      _isLoading.value = true;
+
+      final userId = _currentUser.value?.id;
+      if (userId == null) throw Exception('Foydalanuvchi topilmadi');
+
+      // This would typically upload the image to a file storage service
+      // and return the URL. For now, we'll simulate it.
+      final response = await ApiService.post('/users/$userId/avatar', {
+        'image_path': imagePath, // In real implementation, this would be form data
+      });
+
+      final avatarUrl = response['avatar_url'] as String?;
+      if (avatarUrl != null && _currentUser.value != null) {
+        final updatedUser = _currentUser.value!.copyWith(avatarUrl: avatarUrl);
+        _currentUser.value = updatedUser;
+        await StorageService.saveUserData(updatedUser.toJson());
+      }
+
+      ErrorHandler.showSuccessSnackbar('Profil rasmi yangilandi');
+
+    } catch (e) {
+      ErrorHandler.showErrorSnackbar('Rasm yuklashda xatolik yuz berdi');
+    } finally {
+      _isLoading.value = false;
     }
   }
 }
