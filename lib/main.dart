@@ -1,43 +1,59 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'app/app_theme.dart';
-import 'app/app_routes.dart';
-import 'core/storage_service.dart';
-import 'features/auth/auth_controller.dart';
+import 'package:get_storage/get_storage.dart';
+import 'routes/app_routes.dart';
+import 'controllers/auth_controller.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize storage
-  await StorageService.init();
+  await GetStorage.init();
 
-  // Initialize auth controller
-  Get.put(AuthController());
-
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'PDP Mobile',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
+      title: 'Ta\'lim Markazi',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        cardTheme: CardTheme(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
       initialRoute: _getInitialRoute(),
-      getPages: AppRoutes.pages,
-      defaultTransition: Transition.cupertino,
-      transitionDuration: const Duration(milliseconds: 300),
+      getPages: AppRoutes.routes,
+      debugShowCheckedModeBanner: false,
     );
   }
 
   String _getInitialRoute() {
-    // Check if user is logged in
-    if (StorageService.isLoggedIn()) {
+    final storage = GetStorage();
+    final token = storage.read('auth_token');
+
+    if (token != null) {
       return AppRoutes.home;
     } else {
       return AppRoutes.landing;
