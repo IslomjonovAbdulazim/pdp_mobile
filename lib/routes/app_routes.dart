@@ -2,6 +2,9 @@
 import 'package:get/get.dart';
 import '../pages/landing_page.dart';
 import '../pages/login_page.dart';
+import '../pages/password_entry_page.dart';
+import '../pages/sms_verification_page.dart';
+import '../pages/student_selection_page.dart';
 import '../pages/register_page.dart';
 import '../pages/home_page.dart';
 import '../pages/exams_page.dart';
@@ -12,6 +15,9 @@ import '../middleware/auth_middleware.dart';
 class AppRoutes {
   static const String landing = '/landing';
   static const String login = '/login';
+  static const String passwordEntry = '/password-entry';
+  static const String smsVerification = '/sms-verification';
+  static const String studentSelection = '/student-selection';
   static const String register = '/register';
   static const String home = '/home';
   static const String exams = '/exams';
@@ -26,6 +32,18 @@ class AppRoutes {
     GetPage(
       name: login,
       page: () => const LoginPage(),
+    ),
+    GetPage(
+      name: passwordEntry,
+      page: () => const PasswordEntryPage(),
+    ),
+    GetPage(
+      name: smsVerification,
+      page: () => const SmsVerificationPage(),
+    ),
+    GetPage(
+      name: studentSelection,
+      page: () => const StudentSelectionPage(),
     ),
     GetPage(
       name: register,
