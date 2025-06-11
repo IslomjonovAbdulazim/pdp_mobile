@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../data/models/api_response_model.dart';
 import '../services/api_service.dart';
 import '../data/models/models.dart';
+import '../data/models/api_response_models.dart';
 import '../controllers/auth_controller.dart';
 
 class HomeController extends GetxController {

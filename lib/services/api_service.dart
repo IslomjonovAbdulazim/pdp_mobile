@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../data/models/api_response_model.dart';
 import '../data/models/models.dart';
-import '../data/models/auth_models.dart';
+import '../data/models/api_response_models.dart';
 
 class ApiService {
   static const String baseUrl = 'http://185.74.5.104:8080/api';
@@ -35,24 +35,73 @@ class ApiService {
 
   // ==================== AUTH ENDPOINTS ====================
 
+  /// Step 0: Register a new user (if needed)
+  static Future<Map<String, dynamic>> registerUser({
+    required String phoneNumber,
+    required String fullName,
+    required String password,
+  }) async {
+    try {
+      print('📝 Registering user: $phoneNumber');
+
+      final requestBody = {
+        'phoneNumber': phoneNumber,
+        'fullName': fullName,
+        'password': password,
+      };
+
+      print('📤 Registration request: ${jsonEncode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/v1/junior-app/register'), // Guessing the endpoint
+        headers: _getHeaders(),
+        body: jsonEncode(requestBody),
+      ).timeout(timeout);
+
+      print('📥 Registration response: ${response.statusCode} - ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Registration failed: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Registration error: $e');
+      throw Exception('Network error during registration: $e');
+    }
+  }
+
   /// Step 1: Check if phone number exists and has password
   static Future<PhoneCheckResponse> checkPhoneNumber(String phoneNumber) async {
     try {
+      print('🔍 Checking phone number: $phoneNumber');
+
+      final requestBody = {
+        'phoneNumber': phoneNumber,
+      };
+
+      print('📤 Request body: ${jsonEncode(requestBody)}');
+      print('📤 URL: $baseUrl/auth/v1/junior-app/login');
+
       final response = await http.post(
         Uri.parse('$baseUrl/auth/v1/junior-app/login'),
         headers: _getHeaders(),
-        body: jsonEncode({
-          'phoneNumber': phoneNumber,
-        }),
+        body: jsonEncode(requestBody),
       ).timeout(timeout);
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return PhoneCheckResponse.fromJson(data);
+        final phoneCheckResponse = PhoneCheckResponse.fromJson(data);
+        print('✅ Parsed hasPassword: ${phoneCheckResponse.hasPassword}');
+        return phoneCheckResponse;
       } else {
-        throw Exception('Phone check failed: ${response.statusCode}');
+        throw Exception('Phone check failed: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
+      print('❌ Error in checkPhoneNumber: $e');
       throw Exception('Network error during phone check: $e');
     }
   }
@@ -60,22 +109,36 @@ class ApiService {
   /// Step 2: Enter password and get SMS code
   static Future<PasswordResponse> enterPassword(String phoneNumber, String password) async {
     try {
+      print('🔐 Entering password for: $phoneNumber');
+
+      final requestBody = {
+        'phoneNumber': phoneNumber,
+        'password': password,
+      };
+
+      print('📤 Password request body: ${jsonEncode(requestBody)}');
+      print('📤 URL: $baseUrl/auth/v1/junior-app/enter-password');
+
       final response = await http.post(
         Uri.parse('$baseUrl/auth/v1/junior-app/enter-password'),
         headers: _getHeaders(),
-        body: jsonEncode({
-          'phoneNumber': phoneNumber,
-          'password': password,
-        }),
+        body: jsonEncode(requestBody),
       ).timeout(timeout);
+
+      print('📥 Password response status: ${response.statusCode}');
+      print('📥 Password response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return PasswordResponse.fromJson(data);
+        final passwordResponse = PasswordResponse.fromJson(data);
+        print('✅ Parsed SMS Code ID: ${passwordResponse.smsCodeId}');
+        print('✅ Password success: ${passwordResponse.success}');
+        return passwordResponse;
       } else {
-        throw Exception('Password verification failed: ${response.statusCode}');
+        throw Exception('Password verification failed: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
+      print('❌ Error in enterPassword: $e');
       throw Exception('Network error during password verification: $e');
     }
   }
@@ -87,23 +150,43 @@ class ApiService {
     required String phoneNumber,
   }) async {
     try {
+      print('📱 Verifying SMS code: $smsCode');
+      print('📱 SMS Code ID: $smsCodeId');
+      print('📱 Phone: $phoneNumber');
+
+      final requestBody = {
+        'smsCodeId': smsCodeId,
+        'smsCode': smsCode,
+        'phoneNumber': phoneNumber,
+      };
+
+      print('📤 SMS verification request: ${jsonEncode(requestBody)}');
+      print('📤 URL: $baseUrl/auth/v1/junior-app/chek-sms-code');
+
       final response = await http.post(
         Uri.parse('$baseUrl/auth/v1/junior-app/chek-sms-code'),
         headers: _getHeaders(),
-        body: jsonEncode({
-          'smsCodeId': smsCodeId,
-          'smsCode': smsCode,
-          'phoneNumber': phoneNumber,
-        }),
+        body: jsonEncode(requestBody),
       ).timeout(timeout);
+
+      print('📥 SMS verification status: ${response.statusCode}');
+      print('📥 SMS verification body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return SmsVerificationResponse.fromJson(data);
+        final smsResponse = SmsVerificationResponse.fromJson(data);
+        print('✅ SMS verification success: ${smsResponse.success}');
+        print('✅ Token received: ${smsResponse.token.isNotEmpty ? "Yes" : "No"}');
+        print('✅ Students count: ${smsResponse.students.length}');
+        for (int i = 0; i < smsResponse.students.length; i++) {
+          print('✅ Student $i: ${smsResponse.students[i].fullName} (ID: ${smsResponse.students[i].id})');
+        }
+        return smsResponse;
       } else {
-        throw Exception('SMS verification failed: ${response.statusCode}');
+        throw Exception('SMS verification failed: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
+      print('❌ Error in verifySmsCode: $e');
       throw Exception('Network error during SMS verification: $e');
     }
   }

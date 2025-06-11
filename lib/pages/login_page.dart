@@ -152,7 +152,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Demo hisob',
+                            'Test hisob',
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.w600,
                               color: AppTheme.primaryGreen,
@@ -162,9 +162,10 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Test uchun: +998 90 123 45 67',
+                        'Telefon: +998 93 580 88 40\nParol: Test123!\nSMS: 123456 (istalgan 6 raqam)',
                         style: GoogleFonts.inter(
                           color: AppTheme.textPrimary,
+                          fontSize: 13,
                         ),
                       ),
                     ],

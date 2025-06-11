@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
-import '../data/models/auth_models.dart';
+import '../data/models/api_response_models.dart';
 import '../theme/app_theme.dart';
 
 class StudentSelectionPage extends StatelessWidget {

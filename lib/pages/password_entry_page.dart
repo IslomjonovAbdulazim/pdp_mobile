@@ -223,6 +223,15 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                           fontSize: 14,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Test uchun: Test123! (1 katta harf, 1 kichik harf, 1 raqam, 1 belgi)',
+                        style: GoogleFonts.inter(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
                     ],
                   ),
                 ),

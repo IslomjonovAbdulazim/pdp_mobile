@@ -2,6 +2,7 @@
 import 'package:get/get.dart';
 import '../services/api_service.dart';
 import '../data/models/models.dart';
+import '../controllers/auth_controller.dart';
 
 class ExamsController extends GetxController {
   final _isLoading = false.obs;
@@ -26,17 +27,33 @@ class ExamsController extends GetxController {
       _isLoading.value = true;
       _hasError.value = false;
 
-      // For development, use mock data
-      _exams.value = await ApiService.getMockAllExams();
+      final authController = Get.find<AuthController>();
+      final studentId = authController.currentStudentId;
 
-      // Real API call (when backend is ready)
-      // _exams.value = await ApiService.getAllExams();
+      if (studentId.isEmpty) {
+        throw Exception('Student ID not found');
+      }
+
+      // Use real API - with fallback to mock for development
+      try {
+        _exams.value = await ApiService.getExamHistory(studentId);
+      } catch (apiError) {
+        print('API Error: $apiError');
+        print('Falling back to mock data...');
+
+        // Fallback to mock data for development
+        _exams.value = await ApiService.getMockAllExams();
+      }
 
     } catch (e) {
       _hasError.value = true;
 
       if (e.toString().contains('Network error')) {
         _errorMessage.value = 'Internet aloqasi yo\'q';
+      } else if (e.toString().contains('Student ID not found')) {
+        _errorMessage.value = 'O\'quvchi ma\'lumotlari topilmadi';
+        Get.find<AuthController>().logout();
+        return;
       } else {
         _errorMessage.value = 'Imtihonlar ma\'lumotini yuklashda xatolik';
       }

@@ -1,8 +1,9 @@
 // lib/controllers/auth_controller.dart
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import '../data/models/api_response_models.dart';
 import '../services/api_service.dart';
-import '../data/models/auth_models.dart';
 
 class AuthController extends GetxController {
   final _storage = GetStorage();
@@ -55,10 +56,13 @@ class AuthController extends GetxController {
 
       // Format phone number to ensure consistency
       String formattedPhone = _formatPhoneNumber(phoneNumber);
+      print('🔍 Formatted phone: $formattedPhone');
 
       final response = await ApiService.checkPhoneNumber(formattedPhone);
+      print('🔍 Phone check response hasPassword: ${response.hasPassword}');
 
       if (response.hasPassword) {
+        print('✅ Has password - navigating to password entry');
         _loginSession.value = LoginSession(
           phoneNumber: formattedPhone,
           state: AuthState.phoneChecked,
@@ -66,11 +70,9 @@ class AuthController extends GetxController {
 
         Get.toNamed('/password-entry');
       } else {
-        Get.snackbar(
-          'Xatolik',
-          'Bu telefon raqam tizimda mavjud emas yoki parol o\'rnatilmagan',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        print('❌ No password - showing dialog');
+        // Phone number exists but no password set, or doesn't exist
+        _showPhoneNotFoundDialog(formattedPhone);
       }
 
     } catch (e) {
@@ -78,6 +80,10 @@ class AuthController extends GetxController {
 
       if (e.toString().contains('Network error')) {
         errorMessage = 'Internet aloqasi yo\'q';
+      } else if (e.toString().contains('Phone check failed')) {
+        // Phone number not found - offer registration
+        _showPhoneNotFoundDialog(_formatPhoneNumber(phoneNumber));
+        return;
       }
 
       Get.snackbar(
@@ -88,6 +94,47 @@ class AuthController extends GetxController {
     } finally {
       _isLoading.value = false;
     }
+  }
+
+  void _showPhoneNotFoundDialog(String phoneNumber) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Server xatoligi'),
+        content: Text(
+          'Backend serverida xatolik yuz berdi.\n\n'
+              'Bu test akkaunt ($phoneNumber) uchun backend jamoasi bilan bog\'laning.\n\n'
+              'Error Code: 3000\n'
+              'Status: 500 Internal Server Error',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Orqaga'),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              // Use mock data for now
+              _useMockDataForTesting();
+            },
+            child: const Text('Mock data bilan davom etish'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _useMockDataForTesting() {
+    Get.snackbar(
+      'Mock Mode',
+      'Backend tayyorlanguncha mock data ishlatilmoqda',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
+    );
+
+    // Simulate successful login with mock data
+    legacyLogin('+998935808840', 'Test123!');
   }
 
   // Step 2: Enter password
@@ -268,51 +315,9 @@ class AuthController extends GetxController {
 
   // Legacy login method (for development/testing)
   Future<void> legacyLogin(String phoneNumber, String password) async {
-    try {
-      _isLoading.value = true;
-
-      // For development, use mock login
-      if (phoneNumber == '+998901234567' && password == '123456') {
-        final mockStudent = Student(
-          id: 'mock_student_123',
-          fullName: 'John Doe',
-          phoneNumber: phoneNumber,
-          avatarUrl: null,
-          course: 'Flutter Development',
-          group: 'Group A',
-        );
-
-        await _storage.write('auth_token', 'mock_token_123');
-        await _storage.write('current_student', mockStudent.toJson());
-
-        _currentStudent.value = mockStudent;
-        _isLoggedIn.value = true;
-
-        ApiService.setAuthToken('mock_token_123');
-        ApiService.setCurrentStudentId(mockStudent.id);
-
-        Get.snackbar(
-          'Muvaffaqiyat',
-          'Tizimga muvaffaqiyatli kirdingiz',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-
-        Get.offAllNamed('/home');
-        return;
-      }
-
-      // If not mock credentials, start real auth flow
-      await checkPhoneNumber(phoneNumber);
-
-    } catch (e) {
-      Get.snackbar(
-        'Xatolik',
-        'Login jarayonida xatolik: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    } finally {
-      _isLoading.value = false;
-    }
+    // This method is deprecated - use the new 3-step authentication flow
+    // Start with phone number check
+    await checkPhoneNumber(phoneNumber);
   }
 
   // Logout
@@ -353,6 +358,16 @@ class AuthController extends GetxController {
     // If 9 digits, add +998
     if (digitsOnly.length == 9) {
       return '+998$digitsOnly';
+    }
+
+    // If 12 digits starting with 998, add +
+    if (digitsOnly.length == 12 && digitsOnly.startsWith('998')) {
+      return '+$digitsOnly';
+    }
+
+    // Try without + sign for testing
+    if (digitsOnly.length == 12) {
+      return digitsOnly;
     }
 
     // Otherwise, assume it's already formatted

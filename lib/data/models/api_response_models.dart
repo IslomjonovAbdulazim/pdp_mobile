@@ -7,9 +7,17 @@ class PhoneCheckResponse {
   PhoneCheckResponse({required this.hasPassword});
 
   factory PhoneCheckResponse.fromJson(Map<String, dynamic> json) {
-    return PhoneCheckResponse(
-      hasPassword: json['hasPassword'] ?? false,
-    );
+    // Handle nested data structure
+    if (json.containsKey('data')) {
+      return PhoneCheckResponse(
+        hasPassword: json['data']['hasPassword'] ?? false,
+      );
+    } else {
+      // Fallback for direct structure
+      return PhoneCheckResponse(
+        hasPassword: json['hasPassword'] ?? false,
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -32,11 +40,22 @@ class PasswordResponse {
   });
 
   factory PasswordResponse.fromJson(Map<String, dynamic> json) {
-    return PasswordResponse(
-      smsCodeId: json['smsCodeId'] ?? '',
-      message: json['message'],
-      success: json['success'] ?? true,
-    );
+    // Handle nested data structure
+    if (json.containsKey('data')) {
+      final data = json['data'];
+      return PasswordResponse(
+        smsCodeId: data['smsCodeId'] ?? '',
+        message: data['message'] ?? json['message'],
+        success: json['success'] ?? true,
+      );
+    } else {
+      // Fallback for direct structure
+      return PasswordResponse(
+        smsCodeId: json['smsCodeId'] ?? '',
+        message: json['message'],
+        success: json['success'] ?? true,
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -111,14 +130,28 @@ class SmsVerificationResponse {
   });
 
   factory SmsVerificationResponse.fromJson(Map<String, dynamic> json) {
-    return SmsVerificationResponse(
-      token: json['token'] ?? '',
-      students: (json['students'] as List<dynamic>? ?? [])
-          .map((studentJson) => Student.fromJson(studentJson))
-          .toList(),
-      success: json['success'] ?? true,
-      message: json['message'],
-    );
+    // Handle nested data structure
+    if (json.containsKey('data')) {
+      final data = json['data'];
+      return SmsVerificationResponse(
+        token: data['token'] ?? '',
+        students: (data['students'] as List<dynamic>? ?? [])
+            .map((studentJson) => Student.fromJson(studentJson))
+            .toList(),
+        success: json['success'] ?? true,
+        message: json['message'],
+      );
+    } else {
+      // Fallback for direct structure
+      return SmsVerificationResponse(
+        token: json['token'] ?? '',
+        students: (json['students'] as List<dynamic>? ?? [])
+            .map((studentJson) => Student.fromJson(studentJson))
+            .toList(),
+        success: json['success'] ?? true,
+        message: json['message'],
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {
