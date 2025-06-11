@@ -30,11 +30,21 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       defaultTransition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 300),
+      // Fix text scaling and prevent system font scaling
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.noScaling,
+          boldText: false,
+        ),
+        child: ScrollConfiguration(
+          behavior: const ScrollBehavior(),
+          child: child ?? const Scaffold(),
+        ),
+      ),
     );
   }
 
   String _getInitialRoute() {
-
     final storage = GetStorage();
     final token = storage.read('auth_token');
 

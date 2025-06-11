@@ -34,29 +34,31 @@ class HomeworkController extends GetxController {
         throw Exception('Student ID not found');
       }
 
-      // Use real API - with fallback to mock for development
-      try {
-        _homework.value = await ApiService.getHomeworkHistory(studentId);
-      } catch (apiError) {
-        print('API Error: $apiError');
-        print('Falling back to mock data...');
+      print('📚 Loading homework for student: $studentId');
 
-        // Fallback to mock data for development
-        _homework.value = await ApiService.getMockAllHomework();
-      }
+      // Use real API only - no mock fallback in production
+      _homework.value = await ApiService.getHomeworkHistory(studentId);
+
+      print('✅ Homework loaded successfully: ${_homework.length} assignments');
 
     } catch (e) {
       _hasError.value = true;
 
       if (e.toString().contains('Network error')) {
-        _errorMessage.value = 'Internet aloqasi yo\'q';
+        _errorMessage.value = 'Internet aloqasi yo\'q. Iltimos, internetni tekshiring.';
       } else if (e.toString().contains('Student ID not found')) {
         _errorMessage.value = 'O\'quvchi ma\'lumotlari topilmadi';
         Get.find<AuthController>().logout();
         return;
+      } else if (e.toString().contains('401') || e.toString().contains('403')) {
+        _errorMessage.value = 'Avtorizatsiya muddati tugagan. Qaytadan kiring.';
+        Get.find<AuthController>().logout();
+        return;
       } else {
-        _errorMessage.value = 'Vazifalar ma\'lumotini yuklashda xatolik';
+        _errorMessage.value = 'Vazifalar ma\'lumotini yuklashda xatolik yuz berdi.';
       }
+
+      print('❌ Homework loading error: $e');
 
       Get.snackbar(
         'Xatolik',

@@ -1,6 +1,6 @@
 // lib/controllers/home_controller.dart
 import 'package:get/get.dart';
-import '../data/models/api_response_model.dart';
+import '../data/models/api_response_models.dart';
 import '../services/api_service.dart';
 import '../data/models/models.dart';
 import '../data/models/api_response_models.dart';
@@ -47,53 +47,39 @@ class HomeController extends GetxController {
         throw Exception('Student ID not found');
       }
 
-      // Use real API - with fallback to mock for development
-      try {
-        final data = await ApiService.getHomeData(studentId);
+      print('🏠 Loading home data for student: $studentId');
 
-        _person.value = data.person;
-        _course.value = data.course;
-        _recentExams.value = data.recentExams;
-        _recentPayments.value = data.recentPayments;
-        _recentHomework.value = data.recentHomework;
-        _statistics.value = data.statistics;
+      // Use real API only - no mock fallback in production
+      final data = await ApiService.getHomeData(studentId);
 
-      } catch (apiError) {
-        print('API Error: $apiError');
-        print('Falling back to mock data...');
+      _person.value = data.person;
+      _course.value = data.course;
+      _recentExams.value = data.recentExams;
+      _recentPayments.value = data.recentPayments;
+      _recentHomework.value = data.recentHomework;
+      _statistics.value = data.statistics;
 
-        // Fallback to mock data for development
-        final mockData = await ApiService.getMockHomeData();
-
-        _person.value = Person.fromJson(mockData['person']);
-        _course.value = Course.fromJson(mockData['course']);
-
-        _recentExams.value = (mockData['recentExams'] as List)
-            .map((json) => Exam.fromJson(json))
-            .toList();
-
-        _recentPayments.value = (mockData['recentPayments'] as List)
-            .map((json) => Payment.fromJson(json))
-            .toList();
-
-        _recentHomework.value = (mockData['recentHomework'] as List)
-            .map((json) => Homework.fromJson(json))
-            .toList();
-      }
+      print('✅ Home data loaded successfully');
 
     } catch (e) {
       _hasError.value = true;
 
       if (e.toString().contains('Network error')) {
-        _errorMessage.value = 'Internet aloqasi yo\'q';
+        _errorMessage.value = 'Internet aloqasi yo\'q. Iltimos, internetni tekshiring.';
       } else if (e.toString().contains('Student ID not found')) {
         _errorMessage.value = 'O\'quvchi ma\'lumotlari topilmadi';
         // Redirect to login
         Get.find<AuthController>().logout();
         return;
+      } else if (e.toString().contains('401') || e.toString().contains('403')) {
+        _errorMessage.value = 'Avtorizatsiya muddati tugagan. Qaytadan kiring.';
+        Get.find<AuthController>().logout();
+        return;
       } else {
-        _errorMessage.value = 'Ma\'lumotlarni yuklashda xatolik';
+        _errorMessage.value = 'Ma\'lumotlarni yuklashda xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring.';
       }
+
+      print('❌ Home data loading error: $e');
 
       Get.snackbar(
         'Xatolik',
