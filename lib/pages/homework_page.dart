@@ -182,7 +182,7 @@ class HomeworkPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          homework.title,
+                          homework.title ?? 'Noma\'lum vazifa',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -214,15 +214,20 @@ class HomeworkPage extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                homework.description,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[700],
+
+              // Show description only if it's not null and not empty
+              if (homework.description != null && homework.description!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  homework.description!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[700],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              ],
+
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -274,7 +279,7 @@ class HomeworkPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        homework.title,
+                        homework.title ?? 'Noma\'lum vazifa',
                         style: Get.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -294,15 +299,40 @@ class HomeworkPage extends StatelessWidget {
                 if (homework.score != null)
                   _buildDetailRow('Ball', '${homework.score}'),
 
-                const SizedBox(height: 16),
-                Text(
-                  'Tavsif',
-                  style: Get.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                // Only show description if it's not null and not empty
+                if (homework.description != null && homework.description!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tavsif',
+                    style: Get.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(homework.description),
+                  const SizedBox(height: 8),
+                  Text(homework.description!),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.grey[600], size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Tavsif mavjud emas',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
