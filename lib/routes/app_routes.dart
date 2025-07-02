@@ -1,5 +1,6 @@
 // lib/routes/app_routes.dart
 import 'package:get/get.dart';
+import 'package:pdp_mobile/pages/main_page.dart';
 import '../pages/landing_page.dart';
 import '../pages/login_page.dart';
 import '../pages/password_entry_page.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
   static const String studentSelection = '/student-selection';
   static const String register = '/register';
   static const String home = '/home';
+  static const String main = '/main';
   static const String exams = '/exams';
   static const String payments = '/payments';
   static const String homework = '/homework';
@@ -44,6 +46,10 @@ class AppRoutes {
     GetPage(
       name: studentSelection,
       page: () => const StudentSelectionPage(),
+    ),
+    GetPage(
+      name: main,
+      page: () => const MainPage(),
     ),
     GetPage(
       name: register,

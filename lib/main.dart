@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
     final token = storage.read('auth_token');
 
     if (token != null) {
-      return AppRoutes.home;
+      return AppRoutes.main;
     } else {
       return AppRoutes.landing;
     }
