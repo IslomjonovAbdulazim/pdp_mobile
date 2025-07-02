@@ -75,61 +75,42 @@ class MainPage extends StatelessWidget {
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
-            child: PopupMenuButton(
-              icon: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                child: CircleAvatar(
+              ],
+            ),
+            child: PopupMenuButton<String>(
+              offset: const Offset(0, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              color: Colors.white,
+              child: Obx(
+                () => CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.white,
-                  child: Obx(
-                    () => Text(
-                      authController.userInitials,
-                      style: TextStyle(
-                        color: Theme.of(context).primaryColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  child: Text(
+                    authController.userInitials,
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
               itemBuilder:
                   (context) => [
-                    PopupMenuItem(
-                      child: ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.infoBlue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            color: AppTheme.infoBlue,
-                            size: 20,
-                          ),
-                        ),
-                        title: const Text('Profil'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      onTap: () {
-                        // TODO: Navigate to profile page
-                      },
-                    ),
                     PopupMenuItem(
                       child: ListTile(
                         leading: Container(

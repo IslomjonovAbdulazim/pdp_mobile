@@ -1,4 +1,4 @@
-// lib/pages/homework_page.dart - Enhanced version
+// lib/pages/homework_page.dart - Optimized version
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/homework_controller.dart';
@@ -13,32 +13,7 @@ class HomeworkPage extends StatelessWidget {
 
     return Obx(() {
       if (controller.isLoading) {
-        return Center(
-          child: Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
-                ),
-                const SizedBox(height: 16),
-                const Text('Vazifalar yuklanmoqda...'),
-              ],
-            ),
-          ),
-        );
+        return _buildLoadingState(theme);
       }
 
       if (controller.hasError) {
@@ -48,30 +23,73 @@ class HomeworkPage extends StatelessWidget {
       return RefreshIndicator(
         onRefresh: controller.refreshData,
         color: theme.primaryColor,
-        child: Column(
-          children: [
-            // Enhanced Statistics Card
-            _buildEnhancedStatisticsCard(controller, theme),
-            const SizedBox(height: 16),
+        child: CustomScrollView(
+          slivers: [
+            // Statistics as collapsible header
+            SliverToBoxAdapter(
+              child: _buildEnhancedStatisticsCard(controller, theme),
+            ),
+
+            // Add spacing
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 16),
+            ),
 
             // Homework List
-            Expanded(
-              child: controller.homework.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: controller.homework.length,
-                itemBuilder: (context, index) {
-                  final homework = controller.homework[index];
-                  return _buildEnhancedHomeworkCard(homework, theme, index);
-                },
+            controller.homework.isEmpty
+                ? SliverFillRemaining(
+              child: _buildEmptyState(),
+            )
+                : SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                    final homework = controller.homework[index];
+                    return _buildEnhancedHomeworkCard(homework, theme, index);
+                  },
+                  childCount: controller.homework.length,
+                ),
               ),
+            ),
+
+            // Bottom padding
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 100),
             ),
           ],
         ),
       );
-    })
-    ;
+    });
+  }
+
+  Widget _buildLoadingState(ThemeData theme) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+            ),
+            const SizedBox(height: 16),
+            const Text('Vazifalar yuklanmoqda...'),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildErrorState(HomeworkController controller, ThemeData theme) {
@@ -208,6 +226,7 @@ class HomeworkPage extends StatelessWidget {
                     Icons.assignment_outlined,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildStatItem(
                     'Topshirilgan',
@@ -216,6 +235,7 @@ class HomeworkPage extends StatelessWidget {
                     Icons.check_circle_outline,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildStatItem(
                     'Kutilmoqda',
@@ -224,6 +244,7 @@ class HomeworkPage extends StatelessWidget {
                     Icons.schedule,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildStatItem(
                     'O\'rtacha',
@@ -242,7 +263,7 @@ class HomeworkPage extends StatelessWidget {
 
   Widget _buildStatItem(String label, String value, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
@@ -637,7 +658,7 @@ class HomeworkPage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
+          SizedBox(
             width: 80,
             child: Text(
               '$label:',

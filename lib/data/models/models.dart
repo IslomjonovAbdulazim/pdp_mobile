@@ -1,6 +1,4 @@
-// lib/data/models/models.dart
-// Core business models for the app - Updated for actual backend response
-
+// lib/data/models/models.dart - Updated with photoId handling
 class Course {
   final String title;
   final String schedule;
@@ -26,6 +24,25 @@ class Course {
       'schedule': schedule,
       'weekDays': weekDays,
     };
+  }
+
+  // Convert English week days to Uzbek
+  String get weekDaysInUzbek {
+    if (weekDays == null || weekDays!.isEmpty) return '';
+
+    final dayMap = {
+      'MONDAY': 'Dushanba',
+      'TUESDAY': 'Seshanba',
+      'WEDNESDAY': 'Chorshanba',
+      'THURSDAY': 'Payshanba',
+      'FRIDAY': 'Juma',
+      'SATURDAY': 'Shanba',
+      'SUNDAY': 'Yakshanba',
+    };
+
+    final days = weekDays!.split(', ');
+    final uzbekDays = days.map((day) => dayMap[day.trim()] ?? day.trim()).toList();
+    return uzbekDays.join(', ');
   }
 
   @override
@@ -64,14 +81,47 @@ class Person {
   }
 
   String get initials {
-    final names = fullName.split(' ');
-    if (names.isEmpty) return 'U';
-    if (names.length == 1) return names[0][0].toUpperCase();
-    return '${names[0][0]}${names[1][0]}'.toUpperCase();
+    try {
+      if (fullName.trim().isEmpty) return 'U';
+
+      final names = fullName.trim().split(RegExp(r'\s+'));
+      if (names.isEmpty) return 'U';
+
+      if (names.length == 1) {
+        final name = names[0];
+        return name.isNotEmpty ? name[0].toUpperCase() : 'U';
+      }
+
+      final first = names[0].isNotEmpty ? names[0][0] : '';
+      final second = names[1].isNotEmpty ? names[1][0] : '';
+
+      final result = first + second;
+      return result.isNotEmpty ? result.toUpperCase() : 'U';
+    } catch (e) {
+      print('❌ Error generating initials: $e');
+      return 'U';
+    }
   }
 
-  // Use photoId as avatar if avatarUrl is not available
-  String? get effectiveAvatarUrl => avatarUrl ?? photoId;
+  // Generate profile image URL from photoId with error handling
+  String? get profileImageUrl {
+    try {
+      if (photoId != null && photoId!.isNotEmpty) {
+        // Validate that photoId looks like a valid UUID or ID
+        if (photoId!.length > 5 && !photoId!.contains(' ')) {
+          final url = 'http://185.74.5.104:8080/api/attachment/v1/attachment/download?id=$photoId&view=open';
+          // Basic URL validation
+          if (Uri.tryParse(url) != null) {
+            return url;
+          }
+        }
+      }
+      return avatarUrl;
+    } catch (e) {
+      print('❌ Error generating profile image URL: $e');
+      return avatarUrl;
+    }
+  }
 
   @override
   String toString() => 'Person(fullName: $fullName, phoneNumber: $phoneNumber)';
@@ -154,12 +204,14 @@ class Exam {
 class Payment {
   final DateTime date;
   final int amount;
-  final String? description; // Added based on backend response
+  final String? description;
+  final String? invoiceNumber; // Added invoice number field
 
   Payment({
     required this.date,
     required this.amount,
     this.description,
+    this.invoiceNumber,
   });
 
   factory Payment.fromJson(Map<String, dynamic> json) {
@@ -190,6 +242,7 @@ class Payment {
       date: dateValue,
       amount: amountValue,
       description: json['description'],
+      invoiceNumber: json['invoiceNumber'] ?? json['invoice_number'], // Handle both naming conventions
     );
   }
 
@@ -198,6 +251,7 @@ class Payment {
       'date': date.toIso8601String(),
       'amount': amount,
       'description': description,
+      'invoiceNumber': invoiceNumber,
     };
   }
 
@@ -210,8 +264,10 @@ class Payment {
     return '${date.day}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
+  String get displayInvoiceNumber => invoiceNumber ?? 'N/A';
+
   @override
-  String toString() => 'Payment(amount: $amount, date: $formattedDate, description: $description)';
+  String toString() => 'Payment(amount: $amount, date: $formattedDate, description: $description, invoiceNumber: $invoiceNumber)';
 }
 
 class Homework {

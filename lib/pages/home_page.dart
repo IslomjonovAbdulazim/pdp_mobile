@@ -1,7 +1,6 @@
-// lib/pages/home_page.dart - Enhanced version
+// lib/pages/home_page.dart - Updated version
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/home_controller.dart';
 import '../controllers/home_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/main_controller.dart';
@@ -16,101 +15,103 @@ class HomePage extends StatelessWidget {
     final mainController = Get.find<MainController>();
     final theme = Theme.of(context);
 
-    return Obx(() {
-      if (controller.isLoading) {
-        return Center(
-          child: Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+    return Material(
+      child: Obx(() {
+        if (controller.isLoading) {
+          return Center(
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Ma\'lumotlar yuklanmoqda...'),
+                ],
+              ),
             ),
+          );
+        }
+
+        if (controller.hasError) {
+          return _buildErrorState(controller, theme);
+        }
+
+        return RefreshIndicator(
+          onRefresh: controller.refreshData,
+          color: theme.primaryColor,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
-                ),
                 const SizedBox(height: 16),
-                const Text('Ma\'lumotlar yuklanmoqda...'),
+                // User Info Card with enhanced design
+                _buildEnhancedUserInfoCard(context, controller),
+                const SizedBox(height: 24),
+
+                // Quick Stats Overview - Now clickable to navigate via bottom nav
+                _buildClickableStatsOverview(context, controller, mainController),
+                const SizedBox(height: 24),
+
+                // Recent Sections
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      _buildEnhancedSectionCard(
+                        context,
+                        title: 'Oxirgi imtihonlar',
+                        icon: Icons.quiz_outlined,
+                        iconColor: Colors.blue,
+                        items: controller.recentExams,
+                        onSeeAll: () => mainController.navigateToExams(),
+                        itemBuilder: (exam) => _buildEnhancedExamItem(exam),
+                      ),
+                      const SizedBox(height: 20),
+
+                      _buildEnhancedSectionCard(
+                        context,
+                        title: 'Oxirgi to\'lovlar',
+                        icon: Icons.payment_outlined,
+                        iconColor: Colors.green,
+                        items: controller.recentPayments,
+                        onSeeAll: () => mainController.navigateToPayments(),
+                        itemBuilder: (payment) => _buildEnhancedPaymentItem(payment),
+                      ),
+                      const SizedBox(height: 20),
+
+                      _buildEnhancedSectionCard(
+                        context,
+                        title: 'Oxirgi vazifalar',
+                        icon: Icons.assignment_outlined,
+                        iconColor: Colors.orange,
+                        items: controller.recentHomework,
+                        onSeeAll: () => mainController.navigateToHomework(),
+                        itemBuilder: (homework) => _buildEnhancedHomeworkItem(homework),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
         );
-      }
-
-      if (controller.hasError) {
-        return _buildErrorState(controller, theme);
-      }
-
-      return RefreshIndicator(
-        onRefresh: controller.refreshData,
-        color: theme.primaryColor,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              // User Info Card with enhanced design
-              _buildEnhancedUserInfoCard(context, controller),
-              const SizedBox(height: 24),
-
-              // Quick Stats Overview - Now clickable to navigate
-              _buildClickableStatsOverview(context, controller, mainController),
-              const SizedBox(height: 24),
-
-              // Recent Sections
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    _buildEnhancedSectionCard(
-                      context,
-                      title: 'Oxirgi imtihonlar',
-                      icon: Icons.quiz_outlined,
-                      iconColor: Colors.blue,
-                      items: controller.recentExams,
-                      onSeeAll: controller.goToAllExams,
-                      itemBuilder: (exam) => _buildEnhancedExamItem(exam),
-                    ),
-                    const SizedBox(height: 20),
-
-                    _buildEnhancedSectionCard(
-                      context,
-                      title: 'Oxirgi to\'lovlar',
-                      icon: Icons.payment_outlined,
-                      iconColor: Colors.green,
-                      items: controller.recentPayments,
-                      onSeeAll: controller.goToAllPayments,
-                      itemBuilder: (payment) => _buildEnhancedPaymentItem(payment),
-                    ),
-                    const SizedBox(height: 20),
-
-                    _buildEnhancedSectionCard(
-                      context,
-                      title: 'Oxirgi vazifalar',
-                      icon: Icons.assignment_outlined,
-                      iconColor: Colors.orange,
-                      items: controller.recentHomework,
-                      onSeeAll: controller.goToAllHomework,
-                      itemBuilder: (homework) => _buildEnhancedHomeworkItem(homework),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    });
+      }),
+    );
   }
 
   Widget _buildErrorState(HomeController controller, ThemeData theme) {
@@ -392,57 +393,61 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildClickableStatCard(String label, String value, IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
                 color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Icon(
+                Icons.arrow_forward_ios,
                 color: color,
+                size: 14,
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: color,
-              size: 14,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -499,13 +504,20 @@ class HomePage extends StatelessWidget {
                     color: iconColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: TextButton(
-                    onPressed: onSeeAll,
-                    child: Text(
-                      'Hammasi',
-                      style: TextStyle(
-                        color: iconColor,
-                        fontWeight: FontWeight.w600,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onSeeAll,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Text(
+                          'Hammasi',
+                          style: TextStyle(
+                            color: iconColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -778,5 +790,4 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
-
 }
