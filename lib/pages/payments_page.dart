@@ -263,10 +263,10 @@ class PaymentsPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  isAmount ? 'UZS' : 'ta',
+                  isAmount ? 'UZS' : 'TA',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 8,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -289,7 +289,7 @@ class PaymentsPage extends StatelessWidget {
             label,
             style: TextStyle(
               color: Colors.grey[600],
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
             maxLines: 2,

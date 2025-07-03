@@ -285,7 +285,7 @@ class HomePage extends StatelessWidget {
             if (controller.course != null) ...[
               const SizedBox(height: 24),
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -332,7 +332,7 @@ class HomePage extends StatelessWidget {
                               fontSize: 18,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
                             controller.course!.schedule,
                             style: theme.textTheme.bodyMedium?.copyWith(
@@ -340,6 +340,51 @@ class HomePage extends StatelessWidget {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                          if (controller.course!.weekDaysInUzbek.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Builder(
+                              builder: (context) {
+                                try {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: theme.primaryColor.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: theme.primaryColor.withOpacity(0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      controller.course!.weekDaysInUzbek,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.primaryColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  print('❌ Error displaying week days: $e');
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: theme.primaryColor.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      'Hafta kunlari',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.primaryColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),
